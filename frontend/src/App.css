@@ -1,0 +1,32 @@
+/* ✅ Hide scrollbar globally */
+::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+::-webkit-scrollbar-thumb {
+  background: transparent;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Firefox */
+* {
+  scrollbar-width: none; /* hide scrollbar but allow scroll */
+  -ms-overflow-style: none; /* hide scrollbar for IE/Edge */
+}
+
+/* ✅ Allow Monaco editor to show its scrollbar normally */
+.monaco-editor,
+.monaco-scrollable-element,
+.monaco-editor .overflow-guard {
+  scrollbar-width: auto !important;
+  -ms-overflow-style: auto !important;
+}
+
+.monaco-editor::-webkit-scrollbar,
+.monaco-scrollable-element::-webkit-scrollbar {
+  display: block !important;
+}
