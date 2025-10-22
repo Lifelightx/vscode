@@ -9,8 +9,8 @@ import TabBar from '../components/TabBar';
 import PasscodeModal from '../components/PasscodeModal'; // For SETTING a new passcode
 import JoinPrivateModal from '../components/JoinPrivateModal'; // For ENTERING a passcode to join
 
-const SOCKET_URL = 'http://localhost:5000';
-const API_URL = 'http://localhost:5000';
+const SOCKET_URL = 'https://codeshare-backend-w06x.onrender.com';
+const API_URL = 'https://codeshare-backend-w06x.onrender.com';
 
 function CodeSpacePage() {
   const { spaceName } = useParams();

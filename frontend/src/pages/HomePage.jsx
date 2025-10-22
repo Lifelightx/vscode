@@ -4,7 +4,7 @@ import axios from 'axios';
 import JoinPrivateModal from '../components/JoinPrivateModal'; // This component must exist
 
 function HomePage() {
-  const url = "http://localhost:5000";
+  const url = "https://codeshare-backend-w06x.onrender.com";
   const navigate = useNavigate();
 
   // State variables to manage the entire joining flow
