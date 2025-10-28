@@ -8,16 +8,15 @@ import Terminal from '../components/Terminal';
 import TabBar from '../components/TabBar';
 import PasscodeModal from '../components/PasscodeModal'; // For SETTING a new passcode
 import JoinPrivateModal from '../components/JoinPrivateModal'; // For ENTERING a passcode to join
+import { useAppContext } from '../Context';
 
-const SOCKET_URL = 'https://codeshare-backend-w06x.onrender.com';
-const API_URL = 'https://codeshare-backend-w06x.onrender.com';
 
 function CodeSpacePage() {
   const { spaceName } = useParams();
   const navigate = useNavigate();
   const socketRef = useRef(null);
   const terminalComponentRef = useRef(null);
-
+  const { API_URL, SOCKET_URL, verified } = useAppContext()
   // --- Data State ---
   const [files, setFiles] = useState([]);
   const [openFiles, setOpenFiles] = useState([]);
@@ -28,12 +27,12 @@ function CodeSpacePage() {
   const [isLoading, setIsLoading] = useState(true); // General loading for API calls
   const [showAuthModal, setShowAuthModal] = useState(false); // Controls visibility of the joining modal
   const [authError, setAuthError] = useState(''); // Error message for the joining modal
-  
+
   // Other existing states
   const [isPublic, setIsPublic] = useState(true);
   const [isSetPrivacyModalOpen, setIsSetPrivacyModalOpen] = useState(false); // Differentiated from the auth modal
   const [isTerminalOpen, setIsTerminalOpen] = useState(false);
-  
+
   // This function fetches the full codespace data if the user is authorized
   const fetchCodeSpaceData = async (passcode = null) => {
     setIsLoading(true);
@@ -51,7 +50,7 @@ function CodeSpacePage() {
       }
 
       const data = await res.json();
-      
+
       // --- Success! Populate the application state ---
       setFiles(data.files);
       setIsPublic(data.isPublic);
@@ -61,7 +60,7 @@ function CodeSpacePage() {
       }
       setShowAuthModal(false);
       setIsDataLoaded(true); // This grants access to the main UI
-      
+
       // Initialize the socket connection only AFTER successful auth
       const socket = io(SOCKET_URL);
       socketRef.current = socket;
@@ -80,6 +79,7 @@ function CodeSpacePage() {
   // Main effect to check the room's status on initial load
   useEffect(() => {
     // Stage 1: Check if the room is public or private
+    
     fetch(`${API_URL}/api/codespaces/${spaceName}/status`)
       .then(res => {
         if (!res.ok) throw new Error('Codespace not found.');
@@ -114,16 +114,48 @@ function CodeSpacePage() {
   // Helper function to attach all socket event listeners
   const initializeSocketListeners = (socket) => {
     socket.on('code-updated', ({ file: updatedFileName, content }) => {
-        setFiles(prev => prev.map(f => f.name === updatedFileName ? { ...f, content } : f));
-        setOpenFiles(prev => prev.map(f => f.name === updatedFileName ? { ...f, content } : f));
-        if (activeFileRef.current?.name === updatedFileName) {
-            setActiveFile(prev => ({...prev, content}));
-        }
+      setFiles(prev => prev.map(f => f.name === updatedFileName ? { ...f, content } : f));
+      setOpenFiles(prev => prev.map(f => f.name === updatedFileName ? { ...f, content } : f));
+      if (activeFileRef.current?.name === updatedFileName) {
+        setActiveFile(prev => ({ ...prev, content }));
+      }
     });
     socket.on('file-created', (newFileList) => setFiles(newFileList));
     socket.on('privacy-updated', ({ isPublic }) => setIsPublic(isPublic));
   };
-  
+  const handleDelete = async (file) => {
+    try {
+      const res = await fetch(`${API_URL}/api/codespaces/${spaceName}/delete`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ file }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        console.error(data.msg || "Error deleting file");
+        return;
+      }
+
+      // ✅ Update files in explorer
+      setFiles(prev => prev.filter(f => f.name !== file));
+
+      // ✅ Remove from open tabs
+      setOpenFiles(prev => prev.filter(f => f.name !== file));
+
+      // ✅ If active file is deleted → switch to another opened file
+      setActiveFile(prev =>
+        prev && prev.name === file
+          ? null
+          : prev
+      );
+
+    } catch (error) {
+      console.error("Error:", error);
+    }
+  };
+
   // --- All other handler functions ---
   const handleFileSelect = (file) => {
     const isOpen = openFiles.some(f => f.name === file.name);
@@ -152,18 +184,18 @@ function CodeSpacePage() {
     let finalFileName = fileName;
     if (!fileName.includes('.')) finalFileName += '.txt';
     if (files.some(f => f.name === finalFileName)) {
-        alert('A file with this name already exists.');
-        return;
+      alert('A file with this name already exists.');
+      return;
     }
     const language = finalFileName.split('.').pop() || 'plaintext';
     socketRef.current?.emit('create-file', { spaceName, fileName: finalFileName, language });
   };
-  
+
   const onCodeChange = (newCode) => {
     if (!activeFile) return;
-    setActiveFile(prev => ({...prev, content: newCode}));
+    setActiveFile(prev => ({ ...prev, content: newCode }));
     if (socketRef.current) {
-        socketRef.current.emit('code-change', { spaceName, file: activeFile.name, content: newCode });
+      socketRef.current.emit('code-change', { spaceName, file: activeFile.name, content: newCode });
     }
   };
 
@@ -183,18 +215,18 @@ function CodeSpacePage() {
 
   const updatePrivacySettings = async (newIsPublic, passcode) => {
     try {
-        const res = await fetch(`${API_URL}/api/codespaces/${spaceName}/privacy`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ isPublic: newIsPublic, passcode }),
-        });
-        const data = await res.json();
-        
-        setIsPublic(data.isPublic);
-        socketRef.current?.emit('privacy-change', { spaceName, ...data });
-        setIsSetPrivacyModalOpen(false);
+      const res = await fetch(`${API_URL}/api/codespaces/${spaceName}/privacy`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isPublic: newIsPublic, passcode }),
+      });
+      const data = await res.json();
+
+      setIsPublic(data.isPublic);
+      socketRef.current?.emit('privacy-change', { spaceName, ...data });
+      setIsSetPrivacyModalOpen(false);
     } catch (error) {
-        console.error("Failed to update privacy settings:", error);
+      console.error("Failed to update privacy settings:", error);
     }
   };
 
@@ -232,10 +264,10 @@ function CodeSpacePage() {
       )}
       <div className="flex h-screen w-full bg-gray-800">
         <div className="w-1/6 overflow-y-auto">
-          <FileExplorer files={files} onFileSelect={handleFileSelect} activeFile={activeFile} onCreateFile={handleCreateFile} />
+          <FileExplorer files={files} onFileSelect={handleFileSelect} activeFile={activeFile} onDeleteFile={handleDelete} onCreateFile={handleCreateFile} />
         </div>
         <div className="flex flex-col w-5/6">
-          <TabBar 
+          <TabBar
             openFiles={openFiles}
             activeFile={activeFile}
             onTabClick={handleTabClick}

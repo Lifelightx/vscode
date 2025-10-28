@@ -21,7 +21,7 @@ const io = new Server(server, {
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI)
-    .then(() => console.log('MongoDB connected...'))
+    .then(() => console.log('MongoDB connected : ', mongoose.connection.host))
     .catch(err => console.error(err));
 
 // API Routes

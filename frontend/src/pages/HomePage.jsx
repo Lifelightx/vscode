@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import JoinPrivateModal from '../components/JoinPrivateModal'; // This component must exist
+import { useAppContext } from '../Context';
 
 function HomePage() {
-  const url = "https://codeshare-backend-w06x.onrender.com";
+  const {API_URL, verified, setVerified} = useAppContext();
   const navigate = useNavigate();
 
   // State variables to manage the entire joining flow
@@ -27,15 +28,12 @@ function HomePage() {
     try {
       // Use the "get or create" endpoint to check the space's status.
       const sanitizedName = spaceName.trim().toLowerCase();
-      const res = await axios.post(`${url}/api/codespaces`, { name: sanitizedName });
-      
-      if (res.data.isPublic) {
+      const res = await axios.post(`${API_URL}/api/codespaces`, { name: sanitizedName });
+  
+        setVerified(true)
         // If the space is public (or was just created), navigate directly.
         navigate(`/${res.data.name}`);
-      } else {
-        // If the space exists and is private, show the passcode modal.
-        setShowPasscodeModal(true);
-      }
+      
     } catch (err) {
       console.error(err);
       setError('Could not connect to the server. Please try again.');
@@ -48,33 +46,34 @@ function HomePage() {
    * Step 2: Called by the JoinPrivateModal when the user submits a passcode.
    * This function verifies the passcode with the backend.
    */
-  const handleVerifyPasscode = async (passcode) => {
-    setIsLoading(true);
-    setError(''); // Clear previous errors (like "Incorrect passcode")
+  // const handleVerifyPasscode = async (passcode) => {
+  //   setIsLoading(true);
+  //   setError(''); // Clear previous errors (like "Incorrect passcode")
     
-    try {
-      const sanitizedName = spaceName.trim().toLowerCase();
-      await axios.post(`${url}/api/codespaces/${sanitizedName}/verify`, { passcode });
+  //   try {
+  //     const sanitizedName = spaceName.trim().toLowerCase();
+  //     await axios.post(`${API_URL}/api/codespaces/${sanitizedName}/verify`, { passcode });
       
-      // If the request is successful (status 200), the passcode is correct.
-      setShowPasscodeModal(false);
-      navigate(`/${sanitizedName}`);
-    } catch (err) {
-      // The backend sends a 401 status for an incorrect passcode.
-      if (err.response && err.response.status === 401) {
-        setError(err.response.data.message || 'Incorrect passcode.');
-      } else {
-        setError('An unexpected error occurred.');
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  //     // If the request is successful (status 200), the passcode is correct.
+  //     setVerified(true);
+  //     setShowPasscodeModal(false);
+  //     navigate(`/${sanitizedName}`);
+  //   } catch (err) {
+  //     // The backend sends a 401 status for an incorrect passcode.
+  //     if (err.response && err.response.status === 401) {
+  //       setError(err.response.data.message || 'Incorrect passcode.');
+  //     } else {
+  //       setError('An unexpected error occurred.');
+  //     }
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // };
 
   return (
     <>
       {/* The modal is conditionally rendered based on state */}
-      {showPasscodeModal && (
+      {/* {showPasscodeModal && (
         <JoinPrivateModal
           spaceName={spaceName}
           onVerify={handleVerifyPasscode}
@@ -82,7 +81,7 @@ function HomePage() {
           error={error}
           isLoading={isLoading}
         />
-      )}
+      )} */}
 
       {/* Main Page UI */}
       <div className="min-h-screen bg-black text-white overflow-hidden">

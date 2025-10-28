@@ -127,6 +127,34 @@ router.post('/:name/data', async (req, res) => {
     }
 });
 
+router.delete("/:name/delete", async (req, res) => {
+  const { file } = req.body; // file = filename (string)
+
+  try {
+    const codespace = await Codespace.findOneAndUpdate(
+      { name: req.params.name },
+      {
+        $pull: {
+          files: { name: file }
+        }
+      },
+      { new: true } // return updated document
+    );
+
+    if (!codespace) {
+      return res.status(404).json({ msg: "Codespace not found." });
+    }
+
+    return res.json({
+      msg: `File '${file}' deleted successfully`,
+      codespace
+    });
+
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 
 // ... other routes for updating privacy, etc. can be added here ...
 
