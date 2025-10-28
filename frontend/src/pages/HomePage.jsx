@@ -30,7 +30,7 @@ function HomePage() {
       const sanitizedName = spaceName.trim().toLowerCase();
       const res = await axios.post(`${API_URL}/api/codespaces`, { name: sanitizedName });
   
-        setVerified(true)
+        // setVerified(true)
         // If the space is public (or was just created), navigate directly.
         navigate(`/${res.data.name}`);
       
